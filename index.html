@@ -7,7 +7,7 @@
     <style>
         * {
             box-sizing: border-box;
-            user-select: none; /* легкий эффект, чтобы не выделялось лишнее */
+            user-select: none;
         }
 
         body {
@@ -21,7 +21,6 @@
             padding: 20px;
         }
 
-        /* основной контейнер - стиль "макетной доски" */
         .designer {
             background: #eef2f5;
             border-radius: 48px;
@@ -30,7 +29,6 @@
             transition: all 0.2s ease;
         }
 
-        /* холст с эффектом рамки и тени */
         .canvas-area {
             display: flex;
             justify-content: center;
@@ -58,7 +56,6 @@
             transform: scale(0.99);
         }
 
-        /* Папка-виджет — интерактивный элемент */
         .folder-widget {
             background: #f9e7c2;
             border-radius: 40px;
@@ -87,6 +84,7 @@
             background: rgba(255,240,200,0.7);
             border-radius: 60px;
             backdrop-filter: blur(2px);
+            pointer-events: none;
         }
         
         .folder-icon {
@@ -99,7 +97,6 @@
             letter-spacing: 1px;
         }
         
-        /* выпадающее меню с изображениями */
         .image-picker {
             margin-top: 16px;
             background: #fff6e8;
@@ -162,7 +159,6 @@
             margin-top: 4px;
         }
         
-        /* анимация появления меню */
         @keyframes fadeSlideUp {
             from {
                 opacity: 0;
@@ -174,7 +170,6 @@
             }
         }
         
-        /* кнопка сброса / очистки (доп. эстетика) */
         .info-bar {
             display: flex;
             justify-content: space-between;
@@ -213,7 +208,6 @@
             border-radius: 30px;
         }
         
-        /* адаптивность */
         @media (max-width: 580px) {
             .designer {
                 padding: 16px;
@@ -237,31 +231,23 @@
             margin-top: 12px;
             color: #4d5c66;
         }
-        
-        a {
-            color: #e67e22;
-            text-decoration: none;
-        }
     </style>
 </head>
 <body>
 
 <div class="designer">
-    <!-- Чистый холст -->
     <div class="canvas-area">
         <canvas id="mainCanvas" width="600" height="400" style="width:100%; height:auto; max-width:600px; aspect-ratio:600/400">
             Ваш браузер не поддерживает canvas
         </canvas>
     </div>
     
-    <!-- Папка с выбором (кликабельная область) -->
     <div class="folder-widget" id="folderTrigger">
         <div class="folder-header">
             <span class="folder-icon">📁</span>
             <span class="folder-text">Галерея изображений</span>
             <span class="folder-icon">▼</span>
         </div>
-        <!-- Контейнер, куда динамически подгрузится выбор из 3х изображений -->
         <div id="pickerContainer" style="display: none;"></div>
     </div>
     
@@ -271,13 +257,12 @@
         <button class="reset-btn" id="clearCanvasBtn">🗑️ Очистить холст</button>
     </div>
     <footer>
-        💡 Нажми на папку — выбери картинку (1.jpg, 2.jpg, 3.jpg)
+        💡 Нажми на папку — выбери картинку (1.png, 2.png, 3.png)
     </footer>
 </div>
 
 <script>
     (function() {
-        // === ПОЛУЧАЕМ ЭЛЕМЕНТЫ ===
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
         const folderTrigger = document.getElementById('folderTrigger');
@@ -285,17 +270,23 @@
         const statusSpan = document.getElementById('statusMsg');
         const clearBtn = document.getElementById('clearCanvasBtn');
         
-        // Размеры холста: 600x400 (фиксированный, красивый)
         canvas.width = 600;
         canvas.height = 400;
         
-        // Изначально очищаем холст белым фоном (или можно показать placeholder)
+        let currentImage = null;
+        let currentImageName = null;
+        let isPickerVisible = false;
+        
+        const imagesCache = {
+            '1.png': null,
+            '2.png': null,
+            '3.png': null
+        };
+        
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // белый фон стильный
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // легкая текстурная надпись (необязательно)
             ctx.font = '14px "Segoe UI", system-ui';
             ctx.fillStyle = '#cddde9';
             ctx.textAlign = 'center';
@@ -307,35 +298,25 @@
             statusSpan.innerText = 'Холст пуст';
         }
         
-        // Состояние: текущее выбранное изображение (HTMLImageElement или null)
-        let currentImage = null;
-        let currentImageName = null;
-        
-        // Функция отрисовки выбранного изображения на холсте с сохранением пропорций и центрированием
         function drawImageOnCanvas(img) {
             if (!img) {
                 clearCanvas();
                 return;
             }
-            // очищаем и рисуем белый фон
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // расчет пропорционального размера с сохранением соотношения, чтобы картинка влезала в холст
             const imgWidth = img.width;
             const imgHeight = img.height;
             if (imgWidth === 0 || imgHeight === 0) {
-                // fallback
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 return;
             }
             
-            let drawWidth, drawHeight;
             const ratio = Math.min(canvas.width / imgWidth, canvas.height / imgHeight);
-            drawWidth = imgWidth * ratio;
-            drawHeight = imgHeight * ratio;
-            
+            const drawWidth = imgWidth * ratio;
+            const drawHeight = imgHeight * ratio;
             const offsetX = (canvas.width - drawWidth) / 2;
             const offsetY = (canvas.height - drawHeight) / 2;
             
@@ -343,30 +324,6 @@
             statusSpan.innerText = currentImageName ? `✅ ${currentImageName}` : 'Изображение на холсте';
         }
         
-        // Загрузка изображения по имени файла (1.jpg, 2.jpg, 3.jpg) с кэшем в памяти
-        // Для GitHub Pages нужно гарантировать, что файлы лежат в той же директории, что и index.html.
-        // Поскольку мы не знаем точный путь, но следуя условию "изображения 1.jpg 2.jpg 3.jpg" - создадим функцию,
-        // которая попытается загрузить их относительно текущей страницы.
-        // Дополнительно: встроим fallback-генерацию цветных плейсхолдеров, если файлы не загрузятся,
-        // чтобы демонстрация всегда работала красиво, но приоритет настоящим jpg.
-        
-        // Функция для загрузки изображения с обработкой ошибки (создадим динамический canvas-заменитель с текстом)
-        function loadImageFromFile(name, callback) {
-            const img = new Image();
-            img.crossOrigin = "Anonymous"; // не критично, но для безопасности
-            img.onload = () => {
-                callback(null, img);
-            };
-            img.onerror = () => {
-                // Если картинка не найдена, создаём замещающее изображение с цветным фоном и текстом
-                console.warn(`Не удалось загрузить ${name}, создаём замещающее изображение.`);
-                const fallbackImg = createFallbackImage(name);
-                callback(null, fallbackImg);
-            };
-            img.src = name;  // ожидаем, что 1.jpg лежит рядом
-        }
-        
-        // Создать замещающее изображение с именем файла, чтобы интерфейс не ломался
         function createFallbackImage(fileName) {
             const offCanvas = document.createElement('canvas');
             const offCtx = offCanvas.getContext('2d');
@@ -375,11 +332,11 @@
             offCanvas.width = w;
             offCanvas.height = h;
             
-            // Генерируем уникальный цвет в зависимости от имени файла
             let hue = 0;
-            if (fileName === '1.jpg') hue = 200;   // синий
-            else if (fileName === '2.jpg') hue = 30;  // оранжевый
-            else hue = 120; // зеленый
+            if (fileName === '1.png') hue = 200;
+            else if (fileName === '2.png') hue = 30;
+            else hue = 120;
+            
             const lightColor = `hsl(${hue}, 70%, 85%)`;
             const darkColor = `hsl(${hue}, 80%, 55%)`;
             
@@ -399,60 +356,45 @@
             return fallbackImg;
         }
         
-        // === ПОСТРОЕНИЕ ИНТЕРФЕЙСА ВЫБОРА (3 картинки) ===
-        let isPickerVisible = false;
-        let imagesCache = {
-            '1.jpg': null,
-            '2.jpg': null,
-            '3.jpg': null
-        };
-        
-        // Загружаем все три изображения предварительно (кэшируем)
-        function preloadImages(callbackWhenReady) {
-            let loadedCount = 0;
-            const total = 3;
-            const imageKeys = ['1.jpg', '2.jpg', '3.jpg'];
-            imageKeys.forEach(key => {
-                loadImageFromFile(key, (err, img) => {
-                    imagesCache[key] = img;
-                    loadedCount++;
-                    if (loadedCount === total && callbackWhenReady) callbackWhenReady();
-                });
-            });
+        function loadImageFromFile(name, callback) {
+            const img = new Image();
+            img.onload = () => {
+                callback(null, img);
+            };
+            img.onerror = () => {
+                console.warn(`Не удалось загрузить ${name}, создаём замещающее изображение.`);
+                const fallbackImg = createFallbackImage(name);
+                callback(null, fallbackImg);
+            };
+            img.src = name;
         }
         
-        // Создать/обновить панель выбора (отображение трёх вариантов)
         function renderPicker() {
             if (!pickerContainer) return;
-            // Очищаем контейнер
             pickerContainer.innerHTML = '';
             const optionsDiv = document.createElement('div');
             optionsDiv.className = 'image-picker';
             
-            const imageNames = ['1.jpg', '2.jpg', '3.jpg'];
+            const imageNames = ['1.png', '2.png', '3.png'];
             imageNames.forEach(name => {
                 const imgObj = imagesCache[name];
-                // Создаём карточку выбора
                 const optionCard = document.createElement('div');
                 optionCard.className = 'image-option';
                 if (currentImageName === name) optionCard.classList.add('active');
                 
-                // Миниатюра (thumb)
                 const thumb = document.createElement('img');
                 thumb.className = 'thumb-img';
-                // если изображение уже загружено в кэш, используем его, иначе показываем заглушку
+                
                 if (imgObj && imgObj.complete && imgObj.naturalWidth > 0) {
                     thumb.src = imgObj.src;
                 } else {
-                    // временный плейсхолдер, но на практике к моменту клика все загружены
                     thumb.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" fill="%23ddd"%3E%3C/rect%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="gray"%3E...%3C/text%3E%3C/svg%3E';
-                    // после кэша обновим миниатюру асинхронно
                     if (imgObj) {
                         thumb.onload = () => { if(thumb.src !== imgObj.src) thumb.src = imgObj.src; };
                         if(imgObj.complete) thumb.src = imgObj.src;
                     }
                 }
-                // оптимальная перерисовка для уже загруженных
+                
                 if (imgObj && imgObj.src && (!thumb.src || thumb.src !== imgObj.src)) {
                     thumb.src = imgObj.src;
                 }
@@ -464,7 +406,6 @@
                 optionCard.appendChild(thumb);
                 optionCard.appendChild(labelSpan);
                 
-                // обработчик выбора изображения (только одно)
                 optionCard.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const selectedImg = imagesCache[name];
@@ -473,27 +414,9 @@
                         currentImageName = name;
                         drawImageOnCanvas(currentImage);
                         statusSpan.innerText = `📌 ${name}`;
-                        // Обновить активный класс в меню
+                        
                         document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
                         optionCard.classList.add('active');
-                        // После выбора можно автоматически скрыть панель (опционально по UX)
-                        // однако по заданию: при нажатии на папку выдается выбор. Выбрали одно - оно на холсте.
-                        // Оставим панель открытой, но комфортно, можно скрыть, но лучше оставить как удобный выбор
-                        // но по ожиданию "при нажатии на неё выдается выбор из 3х разных изображений", после выбора
-                        // можем спрятать панель или нет? Это вопрос вкуса. Сделаем, чтобы после выбора меню не закрывалось автоматически
-                        // но пользователь может снова кликнуть папку, чтобы скрыть. Однако логично: пусть меню остается видимым
-                        // пока пользователь не кликнет снаружи или повторно на папку. Но сделаем следующее: для удобства, 
-                        // при выборе изображения меню НЕ закрывается, можно выбрать другое.
-                    } else {
-                        // если по какой-то причине изображения нет, подгружаем повторно
-                        loadImageFromFile(name, (err, img) => {
-                            imagesCache[name] = img;
-                            currentImage = img;
-                            currentImageName = name;
-                            drawImageOnCanvas(img);
-                            statusSpan.innerText = `🖼️ ${name}`;
-                            renderPicker();  // обновить миниатюры
-                        });
                     }
                 });
                 optionsDiv.appendChild(optionCard);
@@ -502,141 +425,63 @@
             pickerContainer.appendChild(optionsDiv);
         }
         
-        // Показать/скрыть панель выбора при клике на папку
+        function showPicker() {
+            renderPicker();
+            pickerContainer.style.display = 'block';
+            isPickerVisible = true;
+        }
+        
+        function hidePicker() {
+            pickerContainer.style.display = 'none';
+            isPickerVisible = false;
+        }
+        
         function togglePicker() {
             if (isPickerVisible) {
-                pickerContainer.style.display = 'none';
-                isPickerVisible = false;
+                hidePicker();
             } else {
-                // перед показом, обновляем содержимое (может быть подгружено не всё? но кэш уже есть)
-                renderPicker();
-                pickerContainer.style.display = 'block';
-                isPickerVisible = true;
+                showPicker();
             }
         }
         
-        // Событие клика по папке
         folderTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
             togglePicker();
         });
         
-        // Клик вне зоны выбора (по документу) чтобы закрыть панель, но не мешать кликам внутри
         document.addEventListener('click', function(event) {
-            // если панель открыта и клик произошёл не внутри folderTrigger и не внутри pickerContainer
-            if (isPickerVisible && !folderTrigger.contains(event.target) && !pickerContainer.contains(event.target)) {
-                pickerContainer.style.display = 'none';
-                isPickerVisible = false;
+            if (isPickerVisible && !folderTrigger.contains(event.target)) {
+                hidePicker();
             }
         });
         
-        // Кнопка очистки холста
         clearBtn.addEventListener('click', () => {
             clearCanvas();
             currentImage = null;
             currentImageName = null;
             statusSpan.innerText = 'Холст очищен';
-            // удаляем активный класс со всех карточек выбора, если меню открыто
             if (isPickerVisible) {
                 document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
             }
         });
         
-        // Инициализация: загружаем изображения в кэш, показываем чистый холст
         clearCanvas();
         statusSpan.innerText = 'Загрузка изображений...';
         
-        preloadImages(() => {
-            // после полной загрузки кэша, если меню открыто — обновить миниатюры
-            statusSpan.innerText = 'Выберите изображение';
-            if (isPickerVisible) {
-                renderPicker(); // обновить миниатюры на реальные картинки
-            }
-            // можно также, если панель закрыта, ничего не делать, но кэш готов
-            // дополнительно: добавим для демонстрации, что все три картинки доступны
-            console.log('Все изображения загружены / заглушки готовы');
-        });
-        
-        // При повторном открытии панели, чтобы отрисовались актуальные thumbnails и статус выбора
-        const originalRender = renderPicker;
-        window.renderPicker = function() {
-            originalRender();
-            if (currentImageName) {
-                const options = document.querySelectorAll('.image-option');
-                options.forEach(opt => {
-                    const label = opt.querySelector('.image-label')?.innerText;
-                    if (label === currentImageName) opt.classList.add('active');
-                });
-            }
-        }.bind(this);
-        
-        // Переопределим renderPicker для сохранения активности
-        const superRender = renderPicker;
-        renderPicker = function() {
-            superRender();
-            if (currentImageName) {
-                const allCards = document.querySelectorAll('.image-option');
-                allCards.forEach(card => {
-                    const lbl = card.querySelector('.image-label')?.innerText;
-                    if (lbl === currentImageName) {
-                        card.classList.add('active');
+        let loadedCount = 0;
+        const imageKeys = ['1.png', '2.png', '3.png'];
+        imageKeys.forEach(key => {
+            loadImageFromFile(key, (err, img) => {
+                imagesCache[key] = img;
+                loadedCount++;
+                if (loadedCount === 3) {
+                    statusSpan.innerText = '✓ Выберите изображение';
+                    if (isPickerVisible) {
+                        renderPicker();
                     }
-                });
-            }
-        }.bind(this);
-        
-        // фикс: заменяем метод чтобы использовался обновлённый рендер
-        const originalToggle = togglePicker;
-        window.togglePicker = function() {
-            if (!isPickerVisible) {
-                renderPicker();
-            }
-            originalToggle();
-        }.bind(this);
-        
-        // переопределим togglePicker для обновления
-        const origToggle = togglePicker;
-        togglePicker = function() {
-            if (!isPickerVisible) {
-                renderPicker();
-            }
-            origToggle();
-        }.bind(this);
-        
-        // вешаем финальную привязку
-        folderTrigger.removeEventListener('click', togglePicker);
-        folderTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isPickerVisible) {
-                renderPicker();
-            }
-            if (isPickerVisible) {
-                pickerContainer.style.display = 'none';
-                isPickerVisible = false;
-            } else {
-                pickerContainer.style.display = 'block';
-                isPickerVisible = true;
-            }
+                }
+            });
         });
-        
-        // Также очистим локальный обработчик документа чтобы не было конфликтов
-        // Но всё уже работает корректно.
-        // Гарантируем, что выбор только одного изображения соблюдён: да, по клику на карточку назначаем
-        // Изображения отображаются на холсте и только одно.
-        
-        // Пересоздадим ссылку для актуальности.
-        // Также при клике вне закрываем
-        document.removeEventListener('click', null);
-        document.addEventListener('click', function(event) {
-            if (isPickerVisible && !folderTrigger.contains(event.target) && !pickerContainer.contains(event.target)) {
-                pickerContainer.style.display = 'none';
-                isPickerVisible = false;
-            }
-        });
-        
-        console.log('✨ Конструктор изображений готов. Файлы: 1.jpg, 2.jpg, 3.jpg должны лежать рядом с index.html');
-        // Дополнительно: если у пользователя нет реальных jpg, заглушки нарисуются автоматически.
-        clearCanvas(); // финальный чистый холст с подсказкой
     })();
 </script>
 </body>
