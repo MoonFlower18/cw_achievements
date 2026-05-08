@@ -257,7 +257,7 @@
         <button class="reset-btn" id="clearCanvasBtn">🗑️ Очистить холст</button>
     </div>
     <footer>
-        💡 Нажми на папку — выбери картинку (1.png, 2.png, 3.png)
+        💡 Нажми на папку — выбери картинку (1.jpg, 2.jpg, 3.jpg)
     </footer>
 </div>
 
@@ -278,9 +278,9 @@
         let isPickerVisible = false;
         
         const imagesCache = {
-            '1.png': null,
-            '2.png': null,
-            '3.png': null
+            '1.jpg': null,
+            '2.jpg': null,
+            '3.jpg': null
         };
         
         function clearCanvas() {
@@ -333,8 +333,8 @@
             offCanvas.height = h;
             
             let hue = 0;
-            if (fileName === '1.png') hue = 200;
-            else if (fileName === '2.png') hue = 30;
+            if (fileName === '1.jpg') hue = 200;
+            else if (fileName === '2.jpg') hue = 30;
             else hue = 120;
             
             const lightColor = `hsl(${hue}, 70%, 85%)`;
@@ -375,7 +375,7 @@
             const optionsDiv = document.createElement('div');
             optionsDiv.className = 'image-picker';
             
-            const imageNames = ['1.png', '2.png', '3.png'];
+            const imageNames = ['1.jpg', '2.jpg', '3.jpg'];
             imageNames.forEach(name => {
                 const imgObj = imagesCache[name];
                 const optionCard = document.createElement('div');
@@ -469,7 +469,7 @@
         statusSpan.innerText = 'Загрузка изображений...';
         
         let loadedCount = 0;
-        const imageKeys = ['1.png', '2.png', '3.png'];
+        const imageKeys = ['1.jpg', '2.jpg', '3.jpg'];
         imageKeys.forEach(key => {
             loadImageFromFile(key, (err, img) => {
                 imagesCache[key] = img;
