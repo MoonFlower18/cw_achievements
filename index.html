@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Конструктор изображений - Canvas</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Чтобы не выделялись кнопки при кликах */
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(145deg, #e0e5ec 0%, #f0f4fa 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Карточка конструктора */
+        .constructor-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(2px);
+            border-radius: 64px;
+            padding: 24px 28px 32px 28px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255,255,255,0.6);
+            transition: all 0.2s;
+        }
+
+        /* Область canvas — как "холст" */
+        .canvas-area {
+            background: #fef7e8;
+            padding: 20px;
+            border-radius: 48px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05), 0 10px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 20px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.2);
+            background-color: #f9ecce;
+            cursor: pointer;
+        }
+
+        /* Панель управления фигурами */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: #ffffffcc;
+            padding: 16px 20px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+        }
+
+        .figure-card {
+            background: #ffffff;
+            border-radius: 40px;
+            padding: 12px 18px;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0,0,0,0.08);
+            min-width: 110px;
+        }
+
+        .figure-card span {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            color: #2c3e4e;
+        }
+
+        .preview-symbol {
+            font-size: 32px;
+            margin-bottom: 6px;
+            display: inline-block;
+        }
+
+        button {
+            background: #2c3e4e;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.15s linear;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        button.active {
+            background: #e67e22;
+            box-shadow: 0 0 0 2px #f39c12, 0 2px 6px black;
+            color: white;
+        }
+
+        button:hover {
+            background: #e67e22;
+            transform: scale(0.96);
+        }
+
+        /* Кнопка скачивания */
+        .download-btn-area {
+            text-align: center;
+        }
+
+        .download-btn {
+            background: #27ae60;
+            padding: 14px 28px;
+            font-size: 1.2rem;
+            width: auto;
+            border-radius: 50px;
+            box-shadow: 0 8px 14px rgba(0,0,0,0.2);
+            transition: 0.1s linear;
+        }
+
+        .download-btn:hover {
+            background: #2ecc71;
+            transform: scale(0.98);
+        }
+
+        .info-text {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.8rem;
+            color: #2c3e4ecc;
+            font-weight: 500;
+        }
+
+        hr {
+            margin: 12px 0;
+            border: none;
+            border-top: 2px dotted #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="constructor-card">
+    <!-- Область холста: размер 50x50 (будет масштабирован для наглядности) -->
+    <div class="canvas-area">
+        <canvas id="designCanvas" width="500" height="500" style="width:500px; height:500px; border: 3px solid #d4b48c; background: #f7e5c2;">
+            Ваш браузер не поддерживает Canvas
+        </canvas>
+    </div>
+
+    <!-- Панель выбора фигур (3 штуки) -->
+    <div class="controls">
+        <div class="figure-card">
+            <div class="preview-symbol">🔴</div>
+            <span>Красный круг</span>
+            <button id="toggleCircleBtn" class="">🔘 Вкл/Выкл</button>
+        </div>
+        <div class="figure-card">
+            <div class="preview-symbol">🔷</div>
+            <span>Синий квадрат</span>
+            <button id="toggleSquareBtn" class="">🔘 Вкл/Выкл</button>
+        </div>
+        <div class="figure-card">
+            <div class="preview-symbol">🟢</div>
+            <span>Зелёный треугольник</span>
+            <button id="toggleTriangleBtn" class="">🔘 Вкл/Выкл</button>
+        </div>
+    </div>
+
+    <!-- Кнопка сохранить изображение -->
+    <div class="download-btn-area">
+        <button id="downloadBtn" class="download-btn">📸 Скачать изображение (PNG)</button>
+    </div>
+    <div class="info-text">
+        💡 Каждая фигура 10x10 пикселей, располагаются внутри бежевого квадрата с отступами.<br>
+        🎨 Можно комбинировать: 1, 2 или все 3 фигуры одновременно.
+    </div>
+</div>
+
+<script>
+    (function(){
+        // Получаем canvas и контекст для рисования
+        const canvas = document.getElementById('designCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ------------------- НАСТРОЙКИ КОНСТРУКТОРА -------------------
+        // Реальный размер холста (в пикселях canvas)
+        // Устанавливаем разрешение 500x500 пикселей, но будем рисовать "внутреннюю логику" с масштабом,
+        // потому что фон - квадрат 50х50 в "логических единицах", но мы отрисуем его красиво увеличенным.
+        // Чтобы фигуры были видны, мы рисуем всё в большем масштабе: логический квадрат 50x50.
+        // Пусть каждая логическая единица = 10 реальных пикселей (тогда 50*10 = 500px — идеально)
+        const scale = 10;        // 1 логическая единица = 10 px
+        const baseSize = 50;     // исходный бежевый квадрат 50 на 50 (логические единицы)
+        
+        // Определим координаты для трех фигур (размером 10x10 логических единиц)
+        // Чтобы они были на расстоянии друг от друга и внутри отступов.
+        // Внутри квадрата 50x50 разместим 3 блока 10x10 с отступами:
+        // Расположим их равномерно по горизонтали и с небольшим отступом от краев.
+        // например: отступ слева 6, сверху 12 (для красоты), распределим горизонтально.
+        // позиции X:
+        //   фигура1: x = 6
+        //   фигура2: x = 20
+        //   фигура3: x = 34
+        // все имеют размер 10x10, помещаются без пересечений, плюс расстояние ~4 между ними.
+        // y = 20 (чтобы по центру по вертикали)
+        const figures = {
+            circle:   { x: 6,  y: 20, w: 10, h: 10, type: 'circle',  active: false },
+            square:   { x: 20, y: 20, w: 10, h: 10, type: 'square',  active: false },
+            triangle: { x: 34, y: 20, w: 10, h: 10, type: 'triangle', active: false }
+        };
+        
+        // --- Флаг для запроса перерисовки ---
+        let needRedraw = true;
+        
+        // --- Функция отрисовки всего холста с учетом выбранных фигур ---
+        function drawFullCanvas() {
+            if (!ctx) return;
+            
+            // 1. Очищаем холст (500x500)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 2. Рисуем бежевый основной квадрат (50x50 логических = 500x500 пикселей)
+            ctx.save();
+            // Масштабируем: (scale = 10px на единицу)
+            // Удобнее установить трансформацию, чтобы писать в логических координатах.
+            // Но мы можем и вручную умножать. Для простоты применим масштаб.
+            ctx.setTransform(scale, 0, 0, scale, 0, 0);
+            
+            // Рисуем основной фон: бежевый квадрат 50x50
+            ctx.fillStyle = '#e0b07f';   // приятный бежево-песочный
+            ctx.fillRect(0, 0, baseSize, baseSize);
+            // Добавим тонкую рамку для четкости границ
+            ctx.strokeStyle = '#a56b2f';
+            ctx.lineWidth = 0.4;
+            ctx.strokeRect(0, 0, baseSize, baseSize);
+            
+            // ---- Рисуем выбранные активные фигуры ----
+            // все фигуры 10x10, цвета зададим по типу.
+            for (let key in figures) {
+                const fig = figures[key];
+                if (!fig.active) continue;
+                
+                const x = fig.x;
+                const y = fig.y;
+                const w = fig.w;
+                const h = fig.h;
+                
+                if (fig.type === 'circle') {
+                    // Красный круг
+                    ctx.fillStyle = '#e34234';
+                    ctx.beginPath();
+                    ctx.arc(x + w/2, y + h/2, w/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#00000033';
+                    ctx.strokeStyle = '#b0302a';
+                    ctx.lineWidth = 0.3;
+                    ctx.stroke();
+                } 
+                else if (fig.type === 'square') {
+                    // Синий квадрат
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(x, y, w, h);
+                    ctx.strokeStyle = '#1e40af';
+                    ctx.lineWidth = 0.3;
+                    ctx.strokeRect(x, y, w, h);
+                } 
+                else if (fig.type === 'triangle') {
+                    // Зеленый треугольник (равносторонний, вписанный в квадрат 10x10)
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    // вершины треугольника: левая нижняя? чтобы красиво. Сделаем верхушку по центру сверху
+                    const midX = x + w/2;
+                    const topY = y;
+                    const rightX = x + w;
+                    const bottomLeftX = x;
+                    const bottomY = y + h;
+                    ctx.moveTo(midX, topY);
+                    ctx.lineTo(rightX, bottomY);
+                    ctx.lineTo(bottomLeftX, bottomY);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#1f8a4c';
+                    ctx.lineWidth = 0.3;
+                    ctx.stroke();
+                }
+            }
+            
+            // дополнительно можно написать текст подсказку, но не обязательно
+            ctx.font = "3px 'Segoe UI'";
+            ctx.fillStyle = "#5e3a1c";
+            ctx.fillText("⚙️", 2, 6);
+            
+            ctx.restore();  // восстанавливаем стандартную матрицу (без масштабирования)
+            // Добавляем лёгкую тень/эффект пиксель-арта здесь уже не обязательно.
+        }
+        
+        // Функция обновления canvas (перерисовка)
+        function redrawCanvas() {
+            drawFullCanvas();
+            needRedraw = false;
+        }
+        
+        // ---- UI: кнопки и управление состоянием фигур ----
+        const circleBtn = document.getElementById('toggleCircleBtn');
+        const squareBtn = document.getElementById('toggleSquareBtn');
+        const triangleBtn = document.getElementById('toggleTriangleBtn');
+        
+        // Функция обновления активного состояния кнопок
+        function updateButtonsUI() {
+            if (figures.circle.active) {
+                circleBtn.classList.add('active');
+                circleBtn.textContent = '✅ Круг включён';
+            } else {
+                circleBtn.classList.remove('active');
+                circleBtn.textContent = '⚪ Добавить круг';
+            }
+            if (figures.square.active) {
+                squareBtn.classList.add('active');
+                squareBtn.textContent = '✅ Квадрат включён';
+            } else {
+                squareBtn.classList.remove('active');
+                squareBtn.textContent = '⬜ Добавить квадрат';
+            }
+            if (figures.triangle.active) {
+                triangleBtn.classList.add('active');
+                triangleBtn.textContent = '✅ Треугольник включён';
+            } else {
+                triangleBtn.classList.remove('active');
+                triangleBtn.textContent = '🔺 Добавить треугольник';
+            }
+        }
+        
+        // Изменение состояния любой фигуры с последующей перерисовкой
+        function setFigureState(figureKey, state) {
+            if (figures[figureKey]) {
+                figures[figureKey].active = state;
+                updateButtonsUI();
+                redrawCanvas();   // перерисовка с новыми фигурами
+            }
+        }
+        
+        // Обработчики кликов для каждой фигуры (инвертируют состояние)
+        circleBtn.addEventListener('click', () => {
+            setFigureState('circle', !figures.circle.active);
+        });
+        squareBtn.addEventListener('click', () => {
+            setFigureState('square', !figures.square.active);
+        });
+        triangleBtn.addEventListener('click', () => {
+            setFigureState('triangle', !figures.triangle.active);
+        });
+        
+        // ---- Скачивание изображения ----
+        const downloadBtn = document.getElementById('downloadBtn');
+        downloadBtn.addEventListener('click', () => {
+            try {
+                // Убедимся, что canvas актуален (принудительная перерисовка перед скачиванием)
+                redrawCanvas();
+                // Получаем dataURL изображения в формате PNG
+                const dataURL = canvas.toDataURL('image/png');
+                // Создаем виртуальную ссылку для скачивания
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+                link.download = `constructor_${timestamp}.png`;
+                link.href = dataURL;
+                link.click();
+            } catch (err) {
+                console.error('Ошибка при сохранении: ', err);
+                alert('Не удалось сохранить изображение, но вы можете сделать скриншот');
+            }
+        });
+        
+        // Первоначальная отрисовка (по умолчанию все фигуры выключены, только бежевый квадрат)
+        // По желанию можно добавить одну включенную фигуру для демонстрации, но по заданию:
+        // "по умолчанию рисовался бежевый квадрат 50 на 50, а также предлагался выбор фигур"
+        // Пусть изначально все фигуры выключены.
+        figures.circle.active = false;
+        figures.square.active = false;
+        figures.triangle.active = false;
+        
+        // Обновляем UI кнопок
+        updateButtonsUI();
+        // Рисуем начальное состояние (чистый квадрат)
+        redrawCanvas();
+        
+        // дополнительная проверка: если окно меняет размер что-то? не требуется масштаб.
+        // Для адаптивности стили canvas задают фиксированный размер, но сам canvas рисуется в 500x500
+        // всё стабильно.
+        
+        // Небольшой фикс: если кто-то захочет "сбросить" или добавить все сразу — всё работает.
+    })();
+</script>
+</body>
+</html>
