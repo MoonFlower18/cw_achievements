@@ -2,16 +2,18 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Конструктор изображений - Холст с выбором картинок</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Конструктор ачивок ЛХ</title>
     <style>
         * {
             box-sizing: border-box;
             user-select: none;
         }
 
+/* общий фон */
+
         body {
-            background: linear-gradient(145deg, #2b3b4e 0%, #1d2c3a 100%);
+            background: linear-gradient(145deg, #2b3b4e 10%, #1d2c3a 80%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -21,41 +23,53 @@
             padding: 20px;
         }
 
+/* осн рамка */
+
         .designer {
             background: #eef2f5;
             border-radius: 48px;
             box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.6);
             padding: 24px 28px 32px 28px;
             transition: all 0.2s ease;
+            backdrop-filter: blur(0px);
         }
+
+/* рамка холста */
 
         .canvas-area {
             display: flex;
             justify-content: center;
+            align-items: center;      
             margin-bottom: 30px;
             background: #c0cfda;
             border-radius: 32px;
             padding: 16px;
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.1), 0 8px 20px rgba(0,0,0,0.2);
+            width: auto;
+            height: auto;
+
         }
 
+/* холст */
+
         canvas {
-            display: block;
-            margin: 0 auto;
+            display: block;  
             background: #ffffff;
             border-radius: 24px;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            transition: transform 0.2s;
             width: auto;
             height: auto;
-            max-width: 100%;
+            max-width: 1000px;
         }
-        
-        canvas:active {
-            transform: scale(0.99);
+       
+/* Контейнер для папок - сетка 2 колонки */
+        .folders-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 20px;
         }
-
+       
         .folder-widget {
             background: #f9e7c2;
             border-radius: 40px;
@@ -63,7 +77,6 @@
             box-shadow: 0 12px 18px -6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 245, 0.9);
             cursor: pointer;
             transition: all 0.2s;
-            position: relative;
         }
         
         .folder-widget:hover {
@@ -71,7 +84,9 @@
             transform: translateY(-2px);
             box-shadow: 0 18px 24px -8px rgba(0, 0, 0, 0.4);
         }
-        
+
+/* внутр рамка папки */
+
         .folder-header {
             display: flex;
             align-items: center;
@@ -80,16 +95,11 @@
             font-weight: bold;
             font-size: 1.4rem;
             color: #5a3e1b;
-            padding: 8px 12px;
+            padding: 8px 16px;
             background: rgba(255,240,200,0.7);
             border-radius: 60px;
             backdrop-filter: blur(2px);
             pointer-events: none;
-        }
-        
-        .folder-icon {
-            font-size: 2rem;
-            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2));
         }
         
         .folder-text {
@@ -97,27 +107,44 @@
             letter-spacing: 1px;
         }
         
+        /* Сетка для картинок 2 строки × 4 колонки */
         .image-picker {
             margin-top: 16px;
             background: #fff6e8;
-            border-radius: 48px;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            flex-wrap: wrap;
+            border-radius: 32px;
+            padding: 16px;
             animation: fadeSlideUp 0.25s ease-out;
             box-shadow: inset 0 0 0 1px rgba(255,255,200,0.8), 0 8px 18px rgba(0,0,0,0.2);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);  /* 4 колонки */
+            gap: 12px;
         }
+        
+        /* Для контейнера папки, если нужно больше картинок */
+        .image-picker.more-items {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+/* рамки изображений */
         
         .image-option {
             display: flex;
             flex-direction: column;
             align-items: center;
             background: white;
-            border-radius: 32px;
+            border-radius: 16px;
             padding: 10px 16px 12px 16px;
-            cursor: pointer;
             transition: all 0.2s;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             border: 2px solid transparent;
@@ -136,7 +163,9 @@
             background: #ffe0b5;
             box-shadow: 0 0 0 3px rgba(230,126,34,0.3);
         }
-        
+
+/* красивое размещение в строку */
+
         .thumb-img {
             width: 80px;
             height: 80px;
@@ -149,6 +178,8 @@
             background: #fdf8ef;
         }
         
+/* красивые подписи у картинок */
+
         .image-label {
             font-weight: 600;
             font-size: 0.9rem;
@@ -158,147 +189,151 @@
             border-radius: 40px;
             margin-top: 4px;
         }
-        
-        @keyframes fadeSlideUp {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
+
+/* инфо рамка */
+
         .info-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
             margin-top: 20px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            color: #2c3e44;
-            background: #d9e2e8;
-            border-radius: 60px;
         }
-        
-        .reset-btn {
-            background: none;
+
+        .reset-btn, .save-btn {
+            background: #e67e22;
+            color: white;
             border: none;
-            font-size: 0.85rem;
-            font-weight: bold;
-            background: #f2c8a0;
-            padding: 6px 14px;
+            padding: 12px 20px;
             border-radius: 40px;
             cursor: pointer;
-            transition: 0.1s linear;
-            font-family: inherit;
-            color: #2d2b26;
-            box-shadow: inset 0 -1px 0 rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .reset-btn:hover, .save-btn:hover {
+            background: #d35400;
+            transform: scale(1.02);
+        }
+
+        .save-btn {
+            background: #27ae60;
+        }
+
+        .save-btn:hover {
+            background: #229954;
         }
         
-        .reset-btn:active {
-            transform: scale(0.96);
-        }
-        
-        .status {
-            font-weight: 500;
-            background: #fff0cf;
-            padding: 4px 16px;
-            border-radius: 30px;
-        }
-        
-        @media (max-width: 580px) {
-            .designer {
-                padding: 16px;
-            }
-            .image-option {
-                min-width: 70px;
-                padding: 6px 10px;
-            }
-            .thumb-img {
-                width: 55px;
-                height: 55px;
-            }
-            .folder-header {
-                font-size: 1.1rem;
-            }
-        }
-        
+/* подсказка */
+
         footer {
             font-size: 0.7rem;
             text-align: center;
             margin-top: 12px;
             color: #4d5c66;
         }
+
     </style>
 </head>
 <body>
 
 <div class="designer">
     <div class="canvas-area">
-        <canvas id="mainCanvas" width="600" height="400" style="width:100%; height:auto; max-width:600px; aspect-ratio:600/400">
+        <canvas id="mainCanvas" style="width:100%; height:auto; max-width:100%">
             Ваш браузер не поддерживает canvas
         </canvas>
     </div>
-    
-    <div class="folder-widget" id="folderTrigger">
-        <div class="folder-header">
-            <span class="folder-icon">📁</span>
-            <span class="folder-text">Галерея изображений</span>
-            <span class="folder-icon">▼</span>
+
+    <div class="folders-container">
+        
+        <div class="folder-widget" data-folder="first">
+            <div class="folder-header">
+                <span class="folder-text">▼ Основа ▼</span>
+            </div>
+            <div class="picker-container" style="display: none;"></div>
         </div>
-        <div id="pickerContainer" style="display: none;"></div>
-    </div>
-    
-    <div class="info-bar">
-        <span>🖌️ Конструктор</span>
-        <span class="status" id="statusMsg">Нет изображения</span>
-        <button class="reset-btn" id="clearCanvasBtn">🗑️ Очистить холст</button>
-    </div>
-    <footer>
-        💡 Нажми на папку — выбери картинку (1.jpg, 2.jpg, 3.jpg)
-    </footer>
+
+        <div class="folder-widget" data-folder="second">
+            <div class="folder-header">
+                <span class="folder-text">▼ Выбор ачивок ▼</span>
+            </div>
+            <div class="picker-container" style="display: none;"></div>
+        </div>
+        <div class="folder-widget" data-folder="third">
+            <div class="folder-header">
+                <span class="folder-text">▼ Выбор легенды ▼</span>
+            </div>
+            <div class="picker-container" style="display: none;"></div>
+        </div>
+        <div class="info-bar">
+            <button class="reset-btn" id="clearCanvasBtn">🗑️ Очистить холст</button>
+            <button class="save-btn" id="saveCanvasBtn">💾 Сохранить картинку</button>
+        </div>
+        <footer>
+            💡 Нажми на папку — выбери картинку 
+        </footer>
 </div>
+
+
+
+
 
 <script>
     (function() {
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
-        const folderTrigger = document.getElementById('folderTrigger');
-        const pickerContainer = document.getElementById('pickerContainer');
-        const statusSpan = document.getElementById('statusMsg');
         const clearBtn = document.getElementById('clearCanvasBtn');
         
-        canvas.width = 600;
+        // Размер холста (теперь согласовано с CSS)
+        canvas.width = 800;
         canvas.height = 400;
         
         let currentImage = null;
         let currentImageName = null;
-        let isPickerVisible = false;
+        let currentFolder = null;
         
-        const imagesCache = {
-            '1.jpg': null,
-            '2.jpg': null,
-            '3.jpg': null
+        // Данные для двух папок
+        const foldersData = {
+            first: {
+                images: ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg', '7.jpg', '8.jpg'],
+                cache: {},
+                isOpen: false
+            },
+            second: {
+                images: ['9.jpg', '10.jpg', '11.jpg', '12.jpg', '13.jpg', '14.jpg', '15.jpg', '16.jpg'],
+                cache: {},
+                isOpen: false
+            },
+            third: {
+                images: ['17.jpg', '18.jpg', '19.jpg', '20.jpg', '21.jpg', '22.jpg', '23.jpg', '24.jpg'],
+                cache: {},
+                isOpen: false
+            }
         };
         
+        // Функция очистки холста
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '14px "Segoe UI", system-ui';
+            ctx.font = '16px "Segoe UI", system-ui';
             ctx.fillStyle = '#cddde9';
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'center'; 
             ctx.fillText('✦ выберите картинку из папки ✦', canvas.width/2, canvas.height/2);
             ctx.fillStyle = '#b0c4d0';
-            ctx.font = '12px monospace';
-            ctx.fillText('кликните на папку', canvas.width/2, canvas.height/2 + 28);
+            ctx.font = '13px monospace';
+            ctx.fillText('кликните на папку', canvas.width/2, canvas.height/2 + 35);
             ctx.textAlign = 'left';
-            statusSpan.innerText = 'Холст пуст';
+            currentImage = null;
+            currentImageName = null;
+            
+            // Убираем активный класс у всех картинок
+            document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
         }
         
-        function drawImageOnCanvas(img) {
+        // Рисование изображения на холсте
+        function drawImageOnCanvas(img, name) {
             if (!img) {
                 clearCanvas();
                 return;
@@ -309,6 +344,7 @@
             
             const imgWidth = img.width;
             const imgHeight = img.height;
+            
             if (imgWidth === 0 || imgHeight === 0) {
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 return;
@@ -321,66 +357,95 @@
             const offsetY = (canvas.height - drawHeight) / 2;
             
             ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-            statusSpan.innerText = currentImageName ? `✅ ${currentImageName}` : 'Изображение на холсте';
         }
         
+        // Создание изображения-заглушки
         function createFallbackImage(fileName) {
             const offCanvas = document.createElement('canvas');
             const offCtx = offCanvas.getContext('2d');
-            const w = 300;
+            const w = 200;
             const h = 200;
             offCanvas.width = w;
             offCanvas.height = h;
             
-            let hue = 0;
-            if (fileName === '1.jpg') hue = 200;
-            else if (fileName === '2.jpg') hue = 30;
-            else hue = 120;
-            
+            let hue = parseInt(fileName.split('.')[0]) * 36 % 360;
             const lightColor = `hsl(${hue}, 70%, 85%)`;
             const darkColor = `hsl(${hue}, 80%, 55%)`;
             
             offCtx.fillStyle = lightColor;
             offCtx.fillRect(0, 0, w, h);
             offCtx.fillStyle = darkColor;
-            offCtx.font = 'bold 24px "Segoe UI"';
+            offCtx.font = 'bold 28px "Segoe UI"';
             offCtx.textAlign = 'center';
             offCtx.textBaseline = 'middle';
             offCtx.fillText(fileName.split('.')[0], w/2, h/2);
-            offCtx.font = '14px monospace';
-            offCtx.fillStyle = '#2c3e33';
-            offCtx.fillText('(демо-заглушка)', w/2, h/2 + 35);
             
             const fallbackImg = new Image();
             fallbackImg.src = offCanvas.toDataURL();
             return fallbackImg;
         }
         
-        function loadImageFromFile(name, callback) {
+        // Загрузка изображения
+        function loadImage(name, callback) {
             const img = new Image();
             img.onload = () => {
                 callback(null, img);
             };
             img.onerror = () => {
-                console.warn(`Не удалось загрузить ${name}, создаём замещающее изображение.`);
+                console.warn(`Не загрузилось ${name}, делаем заглушку`);
                 const fallbackImg = createFallbackImage(name);
                 callback(null, fallbackImg);
             };
             img.src = name;
         }
         
-        function renderPicker() {
+        // Загрузка всех изображений для папки
+        function loadFolderImages(folderKey) {
+            const folder = foldersData[folderKey];
+            if (!folder) return;
+            
+            let loadedCount = 0;
+            const totalImages = folder.images.length;
+            
+            folder.images.forEach(imageName => {
+                if (folder.cache[imageName]) return;
+                
+                loadImage(imageName, (err, img) => {
+                    folder.cache[imageName] = img;
+                    loadedCount++;
+                    
+                    // Если папка открыта и все загрузились, обновляем отображение
+                    if (folder.isOpen && loadedCount === totalImages) {
+                        renderPickerForFolder(folderKey);
+                    }
+                });
+            });
+        }
+        
+        // Отрисовка сетки картинок для конкретной папки
+        function renderPickerForFolder(folderKey) {
+            const folderWidget = document.querySelector(`.folder-widget[data-folder="${folderKey}"]`);
+            if (!folderWidget) return;
+            
+            const pickerContainer = folderWidget.querySelector('.picker-container');
             if (!pickerContainer) return;
+            
+            const folder = foldersData[folderKey];
+            if (!folder) return;
+            
             pickerContainer.innerHTML = '';
             const optionsDiv = document.createElement('div');
             optionsDiv.className = 'image-picker';
+            if (folder.images.length > 4) optionsDiv.classList.add('more-items');
             
-            const imageNames = ['1.jpg', '2.jpg', '3.jpg'];
-            imageNames.forEach(name => {
-                const imgObj = imagesCache[name];
+            // Создаём сетку 2×4 (автоматически через grid-template-columns: repeat(4,1fr))
+            folder.images.forEach(imageName => {
+                const imgObj = folder.cache[imageName];
                 const optionCard = document.createElement('div');
                 optionCard.className = 'image-option';
-                if (currentImageName === name) optionCard.classList.add('active');
+                if (currentImageName === imageName && currentFolder === folderKey) {
+                    optionCard.classList.add('active');
+                }
                 
                 const thumb = document.createElement('img');
                 thumb.className = 'thumb-img';
@@ -389,32 +454,29 @@
                     thumb.src = imgObj.src;
                 } else {
                     thumb.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" fill="%23ddd"%3E%3C/rect%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="gray"%3E...%3C/text%3E%3C/svg%3E';
-                    if (imgObj) {
+                    if (imgObj && imgObj.src) {
                         thumb.onload = () => { if(thumb.src !== imgObj.src) thumb.src = imgObj.src; };
                         if(imgObj.complete) thumb.src = imgObj.src;
                     }
                 }
                 
-                if (imgObj && imgObj.src && (!thumb.src || thumb.src !== imgObj.src)) {
-                    thumb.src = imgObj.src;
-                }
-                
                 const labelSpan = document.createElement('span');
                 labelSpan.className = 'image-label';
-                labelSpan.innerText = name;
+                labelSpan.innerText = imageName;
                 
                 optionCard.appendChild(thumb);
                 optionCard.appendChild(labelSpan);
                 
                 optionCard.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const selectedImg = imagesCache[name];
+                    const selectedImg = folder.cache[imageName];
                     if (selectedImg) {
                         currentImage = selectedImg;
-                        currentImageName = name;
-                        drawImageOnCanvas(currentImage);
-                        statusSpan.innerText = `📌 ${name}`;
+                        currentImageName = imageName;
+                        currentFolder = folderKey;
+                        drawImageOnCanvas(currentImage, imageName);
                         
+                        // Обновляем активный класс во всех папках
                         document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
                         optionCard.classList.add('active');
                     }
@@ -425,63 +487,116 @@
             pickerContainer.appendChild(optionsDiv);
         }
         
-        function showPicker() {
-            renderPicker();
-            pickerContainer.style.display = 'block';
-            isPickerVisible = true;
-        }
-        
-        function hidePicker() {
-            pickerContainer.style.display = 'none';
-            isPickerVisible = false;
-        }
-        
-        function togglePicker() {
-            if (isPickerVisible) {
-                hidePicker();
+        // Показать/скрыть папку
+        function toggleFolder(folderKey) {
+            const folder = foldersData[folderKey];
+            if (!folder) return;
+            
+            const folderWidget = document.querySelector(`.folder-widget[data-folder="${folderKey}"]`);
+            const pickerContainer = folderWidget.querySelector('.picker-container');
+            
+            if (folder.isOpen) {
+                // Закрываем
+                pickerContainer.style.display = 'none';
+                folder.isOpen = false;
+                // Меняем стрелку
+                const header = folderWidget.querySelector('.folder-header');
+ 
             } else {
-                showPicker();
+                // Закрываем все другие папки
+                Object.keys(foldersData).forEach(key => {
+                    if (key !== folderKey && foldersData[key].isOpen) {
+                        const otherWidget = document.querySelector(`.folder-widget[data-folder="${key}"]`);
+                        const otherContainer = otherWidget?.querySelector('.picker-container');
+                        if (otherContainer) otherContainer.style.display = 'none';
+                        foldersData[key].isOpen = false;
+                        const otherHeader = otherWidget?.querySelector('.folder-header');
+                    }
+                });
+                
+                // Открываем текущую
+                pickerContainer.style.display = 'block';
+                folder.isOpen = true;
+                const header = folderWidget.querySelector('.folder-header');
+   
+                
+                // Загружаем изображения если ещё не загружены
+                const needLoad = folder.images.some(imgName => !folder.cache[imgName]);
+                if (needLoad) {
+                    loadFolderImages(folderKey);
+                } else {
+                    renderPickerForFolder(folderKey);
+                }
             }
         }
         
-        folderTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            togglePicker();
-        });
-        
-        document.addEventListener('click', function(event) {
-            if (isPickerVisible && !folderTrigger.contains(event.target)) {
-                hidePicker();
+        // Навешиваем обработчики на папки
+        document.querySelectorAll('.folder-widget').forEach(widget => {
+            const folderKey = widget.getAttribute('data-folder');
+            if (folderKey && foldersData[folderKey]) {
+                // Устанавливаем начальный текст
+                const header = widget.querySelector('.folder-header');
+                
+                widget.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFolder(folderKey);
+                });
             }
         });
         
-        clearBtn.addEventListener('click', () => {
-            clearCanvas();
-            currentImage = null;
-            currentImageName = null;
-            statusSpan.innerText = 'Холст очищен';
-            if (isPickerVisible) {
+        // Очистка холста
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                clearCanvas();
+                currentImage = null;
+                currentImageName = null;
                 document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
-            }
-        });
-        
-        clearCanvas();
-        statusSpan.innerText = 'Загрузка изображений...';
-        
-        let loadedCount = 0;
-        const imageKeys = ['1.jpg', '2.jpg', '3.jpg'];
-        imageKeys.forEach(key => {
-            loadImageFromFile(key, (err, img) => {
-                imagesCache[key] = img;
-                loadedCount++;
-                if (loadedCount === 3) {
-                    statusSpan.innerText = '✓ Выберите изображение';
-                    if (isPickerVisible) {
-                        renderPicker();
-                    }
-                }
             });
-        });
+        }
+        
+        // Начальная очистка
+        clearCanvas();
+        
+        // Предзагрузка первой папки (не открывая)
+        setTimeout(() => {
+            loadFolderImages('first');
+            loadFolderImages('second');
+            loadFolderImages('third');
+        }, 100);
+            const saveBtn = document.getElementById('saveCanvasBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+        
+                // Рисуем только изображение без белого фона
+                if (currentImage) {
+                    const imgWidth = currentImage.width;
+                    const imgHeight = currentImage.height;
+                    const ratio = Math.min(tempCanvas.width / imgWidth, tempCanvas.height / imgHeight);
+                    const drawWidth = imgWidth * ratio;
+                    const drawHeight = imgHeight * ratio;
+                    const offsetX = (tempCanvas.width - drawWidth) / 2;
+                    const offsetY = (tempCanvas.height - drawHeight) / 2;
+                    tempCtx.drawImage(currentImage, offsetX, offsetY, drawWidth, drawHeight);
+                } else {
+                    tempCtx.fillStyle = '#ffffff';
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    tempCtx.font = '16px "Segoe UI"';
+                    tempCtx.fillStyle = '#cddde9';
+                    tempCtx.textAlign = 'center';
+                    tempCtx.fillText('✦ нет изображения ✦', tempCanvas.width/2, tempCanvas.height/2);
+                }
+        
+                // Сохраняем с прозрачным фоном (PNG)
+                const link = document.createElement('a');
+                link.download = `achievement_${Date.now()}.png`;
+                link.href = tempCanvas.toDataURL('image/png');
+                link.click();
+            });
+        }
     })();
 </script>
 </body>
