@@ -285,63 +285,104 @@
         const ctx = canvas.getContext('2d');
         const clearBtn = document.getElementById('clearCanvasBtn');
         
-        // Размер холста (теперь согласовано с CSS)
+        // Размер холста
         canvas.width = 800;
         canvas.height = 400;
         
-        let currentImage = null;
-        let currentImageName = null;
-        let currentFolder = null;
+        const achievementPositions = [
+            { x: 30, y: 60, width: 90, height: 90 },    // 1 - левый верхний угол
+            { x: 160, y: 50, width: 70, height: 70 },   // 2 - выше и меньше
+            { x: 280, y: 100, width: 85, height: 85 },  // 3 - ниже
+            { x: 420, y: 70, width: 80, height: 80 },   // 4
+            { x: 50, y: 220, width: 80, height: 80 },   // 5
+            { x: 180, y: 240, width: 75, height: 75 },  // 6 - ниже обычного
+            { x: 310, y: 210, width: 90, height: 90 },  // 7 - больше
+            { x: 450, y: 250, width: 70, height: 70 }    // 8 - ниже и меньше
+        ];
+
+        const legendPositions = [
+            { x: 350, y: 300, width: 90, height: 90 }
+        ];
+
+        // ТРИ слоя для разных папок
+        let layers = {
+            first: { image: null, name: null },   // Основа
+            second: { images: [], names: [] },  // Ачивки
+            third: { image: null, name: null }    // Легенда
+        };
         
-        // Данные для двух папок
+        // Данные для трёх папок
         const foldersData = {
             first: {
-                images: ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg', '7.jpg', '8.jpg'],
+                images: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png'],
                 cache: {},
-                isOpen: false
+                isOpen: false,
+                layerName: 'first',
+                multiple: false,
+                maxSelections: 1
             },
             second: {
-                images: ['9.jpg', '10.jpg', '11.jpg', '12.jpg', '13.jpg', '14.jpg', '15.jpg', '16.jpg'],
+                images: ['9.png', '10.png', '11.png', '12.png', '13.png', '14.png', '15.png', '16.png'],
                 cache: {},
-                isOpen: false
+                isOpen: false,
+                layerName: 'second',
+                multiple: true,
+                maxSelections: 8
             },
             third: {
-                images: ['17.jpg', '18.jpg', '19.jpg', '20.jpg', '21.jpg', '22.jpg', '23.jpg', '24.jpg'],
+                images: ['17.png', '18.png', '19.png', '20.png', '21.png', '22.png', '23.png', '24.png'],
                 cache: {},
-                isOpen: false
+                isOpen: false,
+                layerName: 'third',
+                multiple: false,
+                maxSelections: 1
             }
         };
         
-        // Функция очистки холста
-        function clearCanvas() {
+        // Функция отрисовки ВСЕХ слоёв (наложение)
+        function drawAllLayers() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '16px "Segoe UI", system-ui';
-            ctx.fillStyle = '#cddde9';
-            ctx.textAlign = 'center'; 
-            ctx.fillText('✦ выберите картинку из папки ✦', canvas.width/2, canvas.height/2);
-            ctx.fillStyle = '#b0c4d0';
-            ctx.font = '13px monospace';
-            ctx.fillText('кликните на папку', canvas.width/2, canvas.height/2 + 35);
-            ctx.textAlign = 'left';
-            currentImage = null;
-            currentImageName = null;
+            // ctx.fillStyle = '#ffffff';
+            // ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Убираем активный класс у всех картинок
-            document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
-        }
-        
-        // Рисование изображения на холсте
-        function drawImageOnCanvas(img, name) {
-            if (!img) {
-                clearCanvas();
-                return;
+            let hasAnyImage = false;
+            
+            // 1. Рисуем ОСНОВУ (центрированная, 100%)
+            if (layers.first.image) {
+                hasAnyImage = true;
+                const img = layers.first.image;
+                drawCenteredImage(img, 1.0);
             }
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            // 2. Рисуем АЧИВКИ (коорды)
+            if (layers.second.images.length > 0) {
+                hasAnyImage = true;
+                drawAchievementsAtPositions();
+            }
+            
+            // 3. Рисуем ЛЕГЕНДУ 
+            if (layers.third.image) {
+                hasAnyImage = true;
+                const img = layers.third.image;
+                drawLegendAtPositions();
+            }
+            
+            // Если нет ни одной картинки - показываем подсказку
+            if (!hasAnyImage) {
+                ctx.font = '16px "Segoe UI", system-ui';
+                ctx.fillStyle = '#cddde9';
+                ctx.textAlign = 'center';
+                ctx.fillText('✦ выберите картинку из папки ✦', canvas.width/2, canvas.height/2);
+                ctx.fillStyle = '#b0c4d0';
+                ctx.font = '13px monospace';
+                ctx.fillText('кликните на папку', canvas.width/2, canvas.height/2 + 35);
+                ctx.textAlign = 'left';
+            }
+        }
+
+
+        // Функция рисования центрированного изображения
+        function drawCenteredImage(img, scale) {
             const imgWidth = img.width;
             const imgHeight = img.height;
             
@@ -350,14 +391,79 @@
                 return;
             }
             
-            const ratio = Math.min(canvas.width / imgWidth, canvas.height / imgHeight);
-            const drawWidth = imgWidth * ratio;
-            const drawHeight = imgHeight * ratio;
+            let drawWidth = imgWidth * scale;
+            let drawHeight = imgHeight * scale;
+            
+            const ratio = Math.min(canvas.width / drawWidth, canvas.height / drawHeight);
+            if (ratio < 1) {
+                drawWidth = drawWidth * ratio;
+                drawHeight = drawHeight * ratio;
+            }
+            
             const offsetX = (canvas.width - drawWidth) / 2;
             const offsetY = (canvas.height - drawHeight) / 2;
             
             ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
         }
+        
+        // Функция рисования ачивок по заданным координатам
+        function drawAchievementsAtPositions() {
+            const count = layers.second.images.length;
+            if (count === 0) return;
+            
+            // Рисуем только столько ачивок, сколько есть (максимум 8)
+            for (let i = 0; i < Math.min(count, achievementPositions.length); i++) {
+                const img = layers.second.images[i];
+                if (!img) continue;
+                
+                const pos = achievementPositions[i];
+                if (!pos) continue;
+                
+                // Рисуем с сохранением пропорций внутри заданной области
+                const originalWidth = img.width;
+                const originalHeight = img.height;
+                
+                // Рассчитываем размер с сохранением пропорций, вписывая в заданную область
+                const targetWidth = pos.width || 80;
+                const targetHeight = pos.height || 80;
+                
+                const ratio = Math.min(targetWidth / originalWidth, targetHeight / originalHeight);
+                const drawWidth = originalWidth * ratio;
+                const drawHeight = originalHeight * ratio;
+                
+                // Центрируем внутри заданной области
+                const offsetX = pos.x + (targetWidth - drawWidth) / 2;
+                const offsetY = pos.y + (targetHeight - drawHeight) / 2;
+                
+                ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            }
+        }
+
+        // Функция рисования легенды по заданным координатам
+        function drawLegendAtPositions() {
+            const img = layers.third.image;  
+            if (!img) return;
+            
+            // Здесь нужно определить позицию для легенды
+            // Вариант 1: Использовать отдельный массив координат для легенды
+            const legendPos = legendPositions[0] || { x: 350, y: 150, width: 100, height: 100 };
+            
+            const originalWidth = img.width;
+            const originalHeight = img.height;
+            
+            const targetWidth = legendPos.width || 100;
+            const targetHeight = legendPos.height || 100;
+            
+            const ratio = Math.min(targetWidth / originalWidth, targetHeight / originalHeight);
+            const drawWidth = originalWidth * ratio;
+            const drawHeight = originalHeight * ratio;
+            
+            const offsetX = legendPos.x + (targetWidth - drawWidth) / 2;
+            const offsetY = legendPos.y + (targetHeight - drawHeight) / 2;
+            
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        }
+
         
         // Создание изображения-заглушки
         function createFallbackImage(fileName) {
@@ -404,18 +510,12 @@
             const folder = foldersData[folderKey];
             if (!folder) return;
             
-            let loadedCount = 0;
-            const totalImages = folder.images.length;
-            
             folder.images.forEach(imageName => {
                 if (folder.cache[imageName]) return;
                 
                 loadImage(imageName, (err, img) => {
                     folder.cache[imageName] = img;
-                    loadedCount++;
-                    
-                    // Если папка открыта и все загрузились, обновляем отображение
-                    if (folder.isOpen && loadedCount === totalImages) {
+                    if (folder.isOpen) {
                         renderPickerForFolder(folderKey);
                     }
                 });
@@ -438,12 +538,22 @@
             optionsDiv.className = 'image-picker';
             if (folder.images.length > 4) optionsDiv.classList.add('more-items');
             
-            // Создаём сетку 2×4 (автоматически через grid-template-columns: repeat(4,1fr))
             folder.images.forEach(imageName => {
                 const imgObj = folder.cache[imageName];
                 const optionCard = document.createElement('div');
                 optionCard.className = 'image-option';
-                if (currentImageName === imageName && currentFolder === folderKey) {
+                
+                // Проверяем, выбрана ли эта картинка
+                let isActive = false;
+                if (folder.multiple) {
+                    // Для множественного выбора - проверяем, есть ли в массиве
+                    isActive = layers[folder.layerName].images.includes(imgObj);
+                } else {
+                    // Для одиночного выбора
+                    isActive = layers[folder.layerName].image === imgObj;
+                }
+                
+                if (isActive) {
                     optionCard.classList.add('active');
                 }
                 
@@ -471,14 +581,54 @@
                     e.stopPropagation();
                     const selectedImg = folder.cache[imageName];
                     if (selectedImg) {
-                        currentImage = selectedImg;
-                        currentImageName = imageName;
-                        currentFolder = folderKey;
-                        drawImageOnCanvas(currentImage, imageName);
+                        if (folder.multiple) {
+                            // МНОЖЕСТВЕННЫЙ ВЫБОР: добавляем/удаляем из массива
+                            const index = layers[folder.layerName].images.indexOf(selectedImg);
+                            if (index === -1) {
+                                // Добавляем, если ещё не выбрана (максимум 8)
+                                if (layers[folder.layerName].images.length < 8) {
+                                    layers[folder.layerName].images.push(selectedImg);
+                                    layers[folder.layerName].names.push(imageName);
+                                } else {
+                                    alert('Можно выбрать максимум 8 изображений!');
+                                }
+                            } else {
+                                // Удаляем, если уже выбрана
+                                layers[folder.layerName].images.splice(index, 1);
+                                layers[folder.layerName].names.splice(index, 1);
+                            }
+                        } else {
+                            // ОДИНОЧНЫЙ ВЫБОР: заменяем картинку
+                            layers[folder.layerName].image = selectedImg;
+                            layers[folder.layerName].name = imageName;
+                        }
                         
-                        // Обновляем активный класс во всех папках
+                        // Перерисовываем всё
+                        drawAllLayers();
+                        
+                        // Обновляем активные классы
                         document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
-                        optionCard.classList.add('active');
+                        
+                        // Подсвечиваем выбранные картинки заново
+                        if (folder.multiple) {
+                            layers[folder.layerName].images.forEach(img => {
+                                document.querySelectorAll('.image-option').forEach(opt => {
+                                    const thumbImg = opt.querySelector('.thumb-img');
+                                    if (thumbImg && thumbImg.src === img.src) {
+                                        opt.classList.add('active');
+                                    }
+                                });
+                            });
+                        } else {
+                            if (layers[folder.layerName].image) {
+                                document.querySelectorAll('.image-option').forEach(opt => {
+                                    const thumbImg = opt.querySelector('.thumb-img');
+                                    if (thumbImg && thumbImg.src === layers[folder.layerName].image.src) {
+                                        opt.classList.add('active');
+                                    }
+                                });
+                            }
+                        }
                     }
                 });
                 optionsDiv.appendChild(optionCard);
@@ -496,12 +646,8 @@
             const pickerContainer = folderWidget.querySelector('.picker-container');
             
             if (folder.isOpen) {
-                // Закрываем
                 pickerContainer.style.display = 'none';
                 folder.isOpen = false;
-                // Меняем стрелку
-                const header = folderWidget.querySelector('.folder-header');
- 
             } else {
                 // Закрываем все другие папки
                 Object.keys(foldersData).forEach(key => {
@@ -510,17 +656,12 @@
                         const otherContainer = otherWidget?.querySelector('.picker-container');
                         if (otherContainer) otherContainer.style.display = 'none';
                         foldersData[key].isOpen = false;
-                        const otherHeader = otherWidget?.querySelector('.folder-header');
                     }
                 });
                 
-                // Открываем текущую
                 pickerContainer.style.display = 'block';
                 folder.isOpen = true;
-                const header = folderWidget.querySelector('.folder-header');
-   
                 
-                // Загружаем изображения если ещё не загружены
                 const needLoad = folder.images.some(imgName => !folder.cache[imgName]);
                 if (needLoad) {
                     loadFolderImages(folderKey);
@@ -534,9 +675,6 @@
         document.querySelectorAll('.folder-widget').forEach(widget => {
             const folderKey = widget.getAttribute('data-folder');
             if (folderKey && foldersData[folderKey]) {
-                // Устанавливаем начальный текст
-                const header = widget.querySelector('.folder-header');
-                
                 widget.addEventListener('click', (e) => {
                     e.stopPropagation();
                     toggleFolder(folderKey);
@@ -547,56 +685,112 @@
         // Очистка холста
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
-                clearCanvas();
-                currentImage = null;
-                currentImageName = null;
+                // Очищаем все слои
+                layers = {
+                    first: { image: null, name: null },
+                    second: { image: null, name: null },
+                    third: { image: null, name: null }
+                };
+                drawAllLayers();
                 document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
             });
         }
         
-        // Начальная очистка
-        clearCanvas();
+        // Сохранение картинки с обрезкой по границам
+        const saveBtn = document.getElementById('saveCanvasBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                // Временно рисуем на отдельном холсте
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Копируем текущее состояние
+                tempCtx.drawImage(canvas, 0, 0);
+                
+                // Находим границы
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                const data = imageData.data;
+                
+                for (let y = 0; y < tempCanvas.height; y++) {
+                    for (let x = 0; x < tempCanvas.width; x++) {
+                        const alpha = data[(y * tempCanvas.width + x) * 4 + 3];
+                        if (alpha > 0) {
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+                
+                if (minX === Infinity) {
+                    // Нет изображений
+                    const emptyCanvas = document.createElement('canvas');
+                    emptyCanvas.width = 200;
+                    emptyCanvas.height = 100;
+                    const emptyCtx = emptyCanvas.getContext('2d');
+                    emptyCtx.fillStyle = '#ffffff';
+                    emptyCtx.fillRect(0, 0, emptyCanvas.width, emptyCanvas.height);
+                    emptyCtx.font = '14px "Segoe UI"';
+                    emptyCtx.fillStyle = '#999';
+                    emptyCtx.textAlign = 'center';
+                    emptyCtx.fillText('нет изображения', emptyCanvas.width/2, emptyCanvas.height/2);
+                    
+                    const link = document.createElement('a');
+                    link.download = `achievement_${Date.now()}.png`;
+                    link.href = emptyCanvas.toDataURL('image/png');
+                    link.click();
+                    return;
+                }
+                
+                // Добавляем отступ
+                const padding = 10;
+                const cropWidth = maxX - minX + padding * 2;
+                const cropHeight = maxY - minY + padding * 2;
+                const croppedCanvas = document.createElement('canvas');
+                croppedCanvas.width = cropWidth;
+                croppedCanvas.height = cropHeight;
+                const croppedCtx = croppedCanvas.getContext('2d');
+                
+                croppedCtx.drawImage(tempCanvas, 
+                    minX - padding, minY - padding, cropWidth, cropHeight,
+                    0, 0, cropWidth, cropHeight
+                );
+                
+                const link = document.createElement('a');
+                link.download = `achievement_${Date.now()}.png`;
+                link.href = croppedCanvas.toDataURL('image/png');
+                link.click();
+            });
+        }
         
-        // Предзагрузка первой папки (не открывая)
+        // Закрытие папки при клике вне её
+        document.addEventListener('click', function(event) {
+            Object.keys(foldersData).forEach(folderKey => {
+                const folder = foldersData[folderKey];
+                if (folder.isOpen) {
+                    const folderWidget = document.querySelector(`.folder-widget[data-folder="${folderKey}"]`);
+                    if (folderWidget && !folderWidget.contains(event.target)) {
+                        const pickerContainer = folderWidget.querySelector('.picker-container');
+                        if (pickerContainer) pickerContainer.style.display = 'none';
+                        folder.isOpen = false;
+                    }
+                }
+            });
+        });
+        
+        // Начальная отрисовка
+        drawAllLayers();
+        
+        // Предзагрузка всех изображений
         setTimeout(() => {
             loadFolderImages('first');
             loadFolderImages('second');
             loadFolderImages('third');
         }, 100);
-            const saveBtn = document.getElementById('saveCanvasBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
-                const tempCtx = tempCanvas.getContext('2d');
-        
-                // Рисуем только изображение без белого фона
-                if (currentImage) {
-                    const imgWidth = currentImage.width;
-                    const imgHeight = currentImage.height;
-                    const ratio = Math.min(tempCanvas.width / imgWidth, tempCanvas.height / imgHeight);
-                    const drawWidth = imgWidth * ratio;
-                    const drawHeight = imgHeight * ratio;
-                    const offsetX = (tempCanvas.width - drawWidth) / 2;
-                    const offsetY = (tempCanvas.height - drawHeight) / 2;
-                    tempCtx.drawImage(currentImage, offsetX, offsetY, drawWidth, drawHeight);
-                } else {
-                    tempCtx.fillStyle = '#ffffff';
-                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    tempCtx.font = '16px "Segoe UI"';
-                    tempCtx.fillStyle = '#cddde9';
-                    tempCtx.textAlign = 'center';
-                    tempCtx.fillText('✦ нет изображения ✦', tempCanvas.width/2, tempCanvas.height/2);
-                }
-        
-                // Сохраняем с прозрачным фоном (PNG)
-                const link = document.createElement('a');
-                link.download = `achievement_${Date.now()}.png`;
-                link.href = tempCanvas.toDataURL('image/png');
-                link.click();
-            });
-        }
     })();
 </script>
 </body>
