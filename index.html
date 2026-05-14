@@ -691,7 +691,23 @@
                     second: { image: null, name: null },
                     third: { image: null, name: null }
                 };
-                drawAllLayers();
+            
+                // Очищаем холст
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                //ctx.fillStyle = '#ffffff';
+                //ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+                // Рисуем начальный текст
+                ctx.font = '16px "Segoe UI", system-ui';
+                ctx.fillStyle = '#cddde9';
+                ctx.textAlign = 'center';
+                ctx.fillText('✦ выберите картинку из папки ✦', canvas.width/2, canvas.height/2);
+                ctx.fillStyle = '#b0c4d0';
+                ctx.font = '13px monospace';
+                ctx.fillText('кликните на папку', canvas.width/2, canvas.height/2 + 35);
+                ctx.textAlign = 'left';
+            
+                // Убираем активные классы у всех картинок в папках
                 document.querySelectorAll('.image-option').forEach(opt => opt.classList.remove('active'));
             });
         }
